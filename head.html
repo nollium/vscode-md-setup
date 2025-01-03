@@ -8,6 +8,7 @@
     }
 
     let figureCount = 0;
+    let isZoomed = false;
 
     async function processImages() {
       await sleep(DELAY);
@@ -30,15 +31,36 @@
         img.replaceWith(img.cloneNode(true));
         const newImg = figure.querySelector('img');
 
+        // Apply base styles
+        newImg.style.display = 'block';
+        newImg.style.marginLeft = 'auto';
+        newImg.style.marginRight = 'auto';
+        newImg.style.border = '1px solid #ddd';
+        newImg.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+        newImg.style.borderRadius = '4px';
+        newImg.style.cursor = 'zoom-in';
+        newImg.style.transition = 'none';
+
         // Handle zoom functionality
         newImg.addEventListener('mousedown', (e) => {
           const rect = newImg.getBoundingClientRect();
           const x = ((e.clientX - rect.left) / rect.width) * 100;
           const y = ((e.clientY - rect.top) / rect.height) * 100;
           
-          // Set the mouse position
-          newImg.style.setProperty('--mouse-x', `${x}%`);
-          newImg.style.setProperty('--mouse-y', `${y}%`);
+          if (!isZoomed) {
+            newImg.style.transform = 'scale(2)';
+            newImg.style.transformOrigin = `${x}% ${y}%`;
+            newImg.style.cursor = 'zoom-out';
+            newImg.style.position = 'relative';
+            newImg.style.zIndex = '999';
+            isZoomed = true;
+          } else {
+            newImg.style.transform = 'scale(1)';
+            newImg.style.cursor = 'zoom-in';
+            newImg.style.position = 'static';
+            newImg.style.zIndex = 'auto';
+            isZoomed = false;
+          }
         });
       });
     }
@@ -79,33 +101,5 @@
     margin-top: 0.5em;
     color: #8c53cf;
     font-style: italic;
-  }
-
-  img {
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
-    border: 1px solid #ddd;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    border-radius: 4px;
-    cursor: zoom-in;
-    
-    &:hover {
-      cursor: zoom-in;
-    }
-    
-    &:active {
-      transform: scale(2);
-      transform-origin: var(--mouse-x, 50%) var(--mouse-y, 50%);
-      cursor: zoom-out;
-      position: relative;
-      z-index: 999;
-      transition: none;
-    }
-
-    &:not(:active) {
-      transform: scale(1);
-      transition: none;
-    }
   }
 </style>
