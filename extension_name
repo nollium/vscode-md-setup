@@ -4,3 +4,6 @@ Description: Markdown Preview Enhanced ported to vscode
 Version: 0.8.15
 Publisher: shd101wyy
 VS Marketplace Link: https://marketplace.cursorapi.com/items?itemName=shd101wyy.markdown-preview-enhanced
+
+
+ext install shd101wyy.markdown-preview-enhanced
