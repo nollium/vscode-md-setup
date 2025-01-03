@@ -1,0 +1,65 @@
+<!-- The content below will be included at the end of the <head> element. -->
+<script type="text/javascript">
+  document.addEventListener("DOMContentLoaded", async function () {
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    await sleep(500);
+
+    document.querySelectorAll('img').forEach(img => {
+      // Create and add caption
+      const caption = document.createElement('figcaption');
+      caption.textContent = img.alt;
+      const figure = document.createElement('figure');
+      figure.style.textAlign = 'center';
+      img.parentNode.insertBefore(figure, img);
+      figure.appendChild(img);
+      figure.appendChild(caption);
+
+      // Handle zoom functionality
+      img.addEventListener('mousedown', (e) => {
+        const rect = img.getBoundingClientRect();
+        const x = ((e.clientX - rect.left) / rect.width) * 100;
+        const y = ((e.clientY - rect.top) / rect.height) * 100;
+        
+        img.style.setProperty('--mouse-x', `${x}%`);
+        img.style.setProperty('--mouse-y', `${y}%`);
+      });
+    });
+  });
+</script>
+
+
+<style>
+  figure {
+    margin: 1em 0;
+  }
+
+  figcaption {
+    text-align: center;
+    font-style: italic;
+    margin-top: 0.5em;
+    color: #8c53cf;
+    font-style: italic;
+  }
+
+  img {
+    transition: transform 0.3s ease;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    border: 1px solid #ddd;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    border-radius: 4px;
+    
+    &:active {
+      transform: scale(2);
+      transform-origin: var(--mouse-x, 50%) var(--mouse-y, 50%);
+      cursor: zoom-in;
+      position: relative;
+      z-index: 999;
+    }
+  }
+</style>
