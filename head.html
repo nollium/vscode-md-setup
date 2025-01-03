@@ -1,36 +1,67 @@
 <!-- The content below will be included at the end of the <head> element. -->
 <script type="text/javascript">
+  const DELAY = 200;
   document.addEventListener("DOMContentLoaded", async function () {
 
     function sleep(ms) {
       return new Promise(resolve => setTimeout(resolve, ms));
     }
 
-    await sleep(500);
+    async function processImages() {
+      await sleep(DELAY);
+      document.querySelectorAll('img').forEach(img => {
+        // Skip if image is already processed
+        if (img.parentNode.tagName === 'FIGURE') return;
 
-    document.querySelectorAll('img').forEach(img => {
-      // Create and add caption
-      const caption = document.createElement('figcaption');
-      caption.textContent = img.alt;
-      const figure = document.createElement('figure');
-      figure.style.textAlign = 'center';
-      img.parentNode.insertBefore(figure, img);
-      figure.appendChild(img);
-      figure.appendChild(caption);
-
-      // Handle zoom functionality
-      img.addEventListener('mousedown', (e) => {
-        const rect = img.getBoundingClientRect();
-        const x = ((e.clientX - rect.left) / rect.width) * 100;
-        const y = ((e.clientY - rect.top) / rect.height) * 100;
+        // Create and add caption
+        const caption = document.createElement('figcaption');
+        caption.textContent = img.alt;
+        const figure = document.createElement('figure');
+        figure.style.textAlign = 'center';
+        img.parentNode.insertBefore(figure, img);
+        figure.appendChild(img);
+        figure.appendChild(caption);
         
-        img.style.setProperty('--mouse-x', `${x}%`);
-        img.style.setProperty('--mouse-y', `${y}%`);
+        // Remove any existing event listener
+        img.replaceWith(img.cloneNode(true));
+        const newImg = figure.querySelector('img');
+
+        // Handle zoom functionality
+        newImg.addEventListener('mousedown', (e) => {
+          const rect = newImg.getBoundingClientRect();
+          const x = ((e.clientX - rect.left) / rect.width) * 100;
+          const y = ((e.clientY - rect.top) / rect.height) * 100;
+          
+          newImg.style.setProperty('--mouse-x', `${x}%`);
+          newImg.style.setProperty('--mouse-y', `${y}%`);
+        });
       });
+    }
+
+    // Initial processing
+    await sleep(DELAY);
+    await processImages();
+
+    // Watch for DOM changes
+    const observer = new MutationObserver(async (mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.type === 'childList') {
+          const hasNewImages = Array.from(mutation.addedNodes).some(node => 
+            node.nodeName === 'IMG' || (node.nodeType === 1 && node.querySelector('img'))
+          );
+          if (hasNewImages) {
+            await processImages();
+          }
+        }
+      }
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
     });
   });
 </script>
-
 
 <style>
   figure {
@@ -46,20 +77,30 @@
   }
 
   img {
-    transition: transform 0.3s ease;
     display: block;
     margin-left: auto;
     margin-right: auto;
     border: 1px solid #ddd;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     border-radius: 4px;
+    cursor: zoom-in;
+    
+    &:hover {
+      cursor: zoom-in;
+    }
     
     &:active {
       transform: scale(2);
       transform-origin: var(--mouse-x, 50%) var(--mouse-y, 50%);
-      cursor: zoom-in;
+      cursor: zoom-out;
       position: relative;
       z-index: 999;
+      transition: none;
+    }
+    
+    &:not(:active) {
+      transform: scale(1);
+      transition: none;
     }
   }
 </style>
