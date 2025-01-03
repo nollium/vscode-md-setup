@@ -77,6 +77,7 @@
             node.nodeName === 'IMG' || (node.nodeType === 1 && node.querySelector('img'))
           );
           if (hasNewImages) {
+            figureCount = 0;
             await processImages();
           }
         }
