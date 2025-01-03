@@ -32,6 +32,7 @@
           const x = ((e.clientX - rect.left) / rect.width) * 100;
           const y = ((e.clientY - rect.top) / rect.height) * 100;
           
+          // Set the mouse position
           newImg.style.setProperty('--mouse-x', `${x}%`);
           newImg.style.setProperty('--mouse-y', `${y}%`);
         });
@@ -97,7 +98,7 @@
       z-index: 999;
       transition: none;
     }
-    
+
     &:not(:active) {
       transform: scale(1);
       transition: none;
