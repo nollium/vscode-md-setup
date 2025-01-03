@@ -7,15 +7,19 @@
       return new Promise(resolve => setTimeout(resolve, ms));
     }
 
+    let figureCount = 0;
+
     async function processImages() {
       await sleep(DELAY);
       document.querySelectorAll('img').forEach(img => {
         // Skip if image is already processed
         if (img.parentNode.tagName === 'FIGURE') return;
 
+        figureCount++;
+
         // Create and add caption
         const caption = document.createElement('figcaption');
-        caption.textContent = img.alt;
+        caption.textContent = `Image ${figureCount}: ${img.alt}`;
         const figure = document.createElement('figure');
         figure.style.textAlign = 'center';
         img.parentNode.insertBefore(figure, img);
