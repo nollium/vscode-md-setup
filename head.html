@@ -3,6 +3,9 @@
   const DELAY = 200;
   document.addEventListener("DOMContentLoaded", async function () {
 
+
+    
+
     function sleep(ms) {
       return new Promise(resolve => setTimeout(resolve, ms));
     }
@@ -183,7 +186,7 @@
 
   .copy-button {
     position: absolute;
-    top: 5px;
+    bottom: 8px;
     right: 5px;
     padding: 4px 8px;
     font-size: 12px;
@@ -191,7 +194,7 @@
     border: 1px solid #ddd;
     border-radius: 3px;
     cursor: pointer;
-    opacity: 0;  /* Hide by default */
+    opacity: 0;
     transition: opacity 0.2s ease-in-out;
     z-index: 1000;
   }
@@ -214,7 +217,7 @@
 
   .img-copy-button {
     position: absolute;
-    top: 5px;
+    bottom: 5px;
     right: 5px;
     padding: 4px 8px;
     font-size: 12px;
@@ -222,7 +225,7 @@
     border: 1px solid #ddd;
     border-radius: 3px;
     cursor: pointer;
-    opacity: 0;  /* Hide by default */
+    opacity: 0;
     transition: opacity 0.2s ease-in-out;
     z-index: 1000;
   }
