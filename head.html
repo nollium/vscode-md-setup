@@ -15,6 +15,7 @@
 const DELAY = 200;
 const COPY_FEEDBACK_DELAY = 2000;
 const OCR_CACHE_PREFIX = 'ocr_cache_';
+const CLEAR_CACHE_BUTTON_ENABLED = false;
 
 // Utility functions
 function sleep(ms) {
@@ -272,16 +273,18 @@ class CodeBlockHandler {
   }
 }
 
+
 // Main initialization
 document.addEventListener("DOMContentLoaded", async function () {
-  // Add this new code block
-  await sleep(DELAY);
-  const clearButton = document.createElement('button');
-  clearButton.textContent = 'Clear OCR Cache';
-  clearButton.style.display = 'inline-block';
-  clearButton.style.marginLeft = '15px';
-  clearButton.style.verticalAlign = 'middle';
-  clearButton.addEventListener('click', clearOCRCache);
+  if (CLEAR_CACHE_BUTTON_ENABLED) {
+    await sleep(DELAY);
+    const clearButton = document.createElement('button');
+    clearButton.textContent = 'Clear OCR Cache';
+    clearButton.style.display = 'inline-block';
+    clearButton.style.marginLeft = '15px';
+    clearButton.style.verticalAlign = 'right';
+    clearButton.addEventListener('click', clearOCRCache);
+  }
   
   // Find the first h1 element and append the button to it
   const firstH1 = document.querySelector('h1');
