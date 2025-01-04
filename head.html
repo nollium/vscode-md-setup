@@ -1,174 +1,195 @@
 <!-- The content below will be included at the end of the <head> element. -->
 <script type="text/javascript">
-  const DELAY = 200;
-  document.addEventListener("DOMContentLoaded", async function () {
+// Constants
+const DELAY = 200;
+const COPY_FEEDBACK_DELAY = 2000;
 
+// Utility functions
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
+// Image handling class
+class ImageHandler {
+  constructor() {
+    this.figureCount = 0;
+    this.isZoomed = false;
+  }
+
+  async copyImageToClipboard(img, copyButton) {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      
+      const blob = await new Promise(resolve => canvas.toBlob(resolve));
+      await navigator.clipboard.write([
+        new ClipboardItem({ [blob.type]: blob })
+      ]);
+      
+      this.showCopyFeedback(copyButton);
+    } catch (err) {
+      console.error('Failed to copy image:', err);
+      this.showCopyFeedback(copyButton, true);
+    }
+  }
+
+  handleImageZoom(img, e) {
+    const rect = img.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
     
-
-    function sleep(ms) {
-      return new Promise(resolve => setTimeout(resolve, ms));
+    if (!this.isZoomed) {
+      this.zoomIn(img, x, y);
+    } else {
+      this.zoomOut(img);
     }
+  }
 
-    let figureCount = 0;
-    let isZoomed = false;
+  zoomIn(img, x, y) {
+    img.style.transform = 'scale(2)';
+    img.style.transformOrigin = `${x}% ${y}%`;
+    img.style.cursor = 'zoom-out';
+    img.style.position = 'relative';
+    img.style.zIndex = '999';
+    this.isZoomed = true;
+  }
 
-    async function processImages() {
-      await sleep(DELAY);
-      document.querySelectorAll('img').forEach(img => {
-        // Skip if image is already processed
-        if (img.parentNode.tagName === 'FIGURE') return;
+  zoomOut(img) {
+    img.style.transform = 'scale(1)';
+    img.style.cursor = 'zoom-in';
+    img.style.position = 'static';
+    img.style.zIndex = 'auto';
+    this.isZoomed = false;
+  }
 
-        figureCount++;
+  showCopyFeedback(button, isError = false) {
+    button.textContent = isError ? 'Error!' : 'Copied!';
+    setTimeout(() => {
+      button.textContent = 'Copy';
+    }, COPY_FEEDBACK_DELAY);
+  }
 
-        // Create and add caption
-        const caption = document.createElement('figcaption');
-        caption.textContent = `Image ${figureCount}: ${img.alt}`;
-        const figure = document.createElement('figure');
-        figure.style.textAlign = 'center';
-
-        // Add copy button
-        const copyButton = document.createElement('button');
-        copyButton.className = 'img-copy-button';
-        copyButton.textContent = 'Copy';
-        copyButton.addEventListener('click', async () => {
-          try {
-            // Create a canvas and draw the image on it
-            const canvas = document.createElement('canvas');
-            canvas.width = img.naturalWidth;
-            canvas.height = img.naturalHeight;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0);
-            
-            // Get the image as blob
-            const blob = await new Promise(resolve => canvas.toBlob(resolve));
-            
-            // Copy to clipboard
-            await navigator.clipboard.write([
-              new ClipboardItem({
-                [blob.type]: blob
-              })
-            ]);
-            
-            // Visual feedback
-            copyButton.textContent = 'Copied!';
-            setTimeout(() => {
-              copyButton.textContent = 'Copy';
-            }, 2000);
-          } catch (err) {
-            console.error('Failed to copy image:', err);
-            copyButton.textContent = 'Error!';
-            setTimeout(() => {
-              copyButton.textContent = 'Copy';
-            }, 2000);
-          }
-        });
-
-        img.parentNode.insertBefore(figure, img);
-        figure.appendChild(copyButton);
-        figure.appendChild(img);
-        figure.appendChild(caption);
-        
-        // Remove any existing event listener
-        img.replaceWith(img.cloneNode(true));
-        const newImg = figure.querySelector('img');
-
-        // Apply base styles
-        newImg.style.display = 'block';
-        newImg.style.marginLeft = 'auto';
-        newImg.style.marginRight = 'auto';
-        newImg.style.border = '1px solid #ddd';
-        newImg.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
-        newImg.style.borderRadius = '4px';
-        newImg.style.cursor = 'zoom-in';
-        newImg.style.transition = 'none';
-
-        // Handle zoom functionality
-        newImg.addEventListener('mousedown', (e) => {
-          const rect = newImg.getBoundingClientRect();
-          const x = ((e.clientX - rect.left) / rect.width) * 100;
-          const y = ((e.clientY - rect.top) / rect.height) * 100;
-          
-          if (!isZoomed) {
-            newImg.style.transform = 'scale(2)';
-            newImg.style.transformOrigin = `${x}% ${y}%`;
-            newImg.style.cursor = 'zoom-out';
-            newImg.style.position = 'relative';
-            newImg.style.zIndex = '999';
-            isZoomed = true;
-          } else {
-            newImg.style.transform = 'scale(1)';
-            newImg.style.cursor = 'zoom-in';
-            newImg.style.position = 'static';
-            newImg.style.zIndex = 'auto';
-            isZoomed = false;
-          }
-        });
-      });
-    }
-
-    // Add new function to handle code blocks
-    async function processCodeBlocks() {
-      document.querySelectorAll('pre[data-role="codeBlock"]').forEach(block => {
-        // Skip if already processed
-        if (block.querySelector('.copy-button')) return;
-
-        const button = document.createElement('button');
-        button.className = 'copy-button';
-        button.textContent = 'Copy';
-        
-        button.addEventListener('click', async () => {
-          const code = block.querySelector('code').textContent;
-          await navigator.clipboard.writeText(code);
-          
-          // Visual feedback
-          button.textContent = 'Copied!';
-          setTimeout(() => {
-            button.textContent = 'Copy';
-          }, 2000);
-        });
-
-        block.appendChild(button);
-      });
-    }
-
-    // Initial processing
+  async processImages() {
     await sleep(DELAY);
-    await processImages();
-    await processCodeBlocks();
+    this.figureCount = 0;
+    
+    document.querySelectorAll('img').forEach(img => {
+      if (img.parentNode.tagName === 'FIGURE') return;
 
-    // Update mutation observer
-    const observer = new MutationObserver(async (mutations) => {
-      for (const mutation of mutations) {
-        if (mutation.type === 'childList') {
-          const hasNewImages = Array.from(mutation.addedNodes).some(node => 
-            node.nodeName === 'IMG' || (node.nodeType === 1 && node.querySelector('img'))
-          );
-          const hasNewCodeBlocks = Array.from(mutation.addedNodes).some(node =>
-            node.nodeName === 'PRE' || (node.nodeType === 1 && node.querySelector('pre[data-role="codeBlock"]'))
-          );
-          
-          if (hasNewImages) {
-            figureCount = 0;
-            await processImages();
-          }
-          if (hasNewCodeBlocks) {
-            await processCodeBlocks();
-          }
-        }
+      this.figureCount++;
+      this.wrapImageInFigure(img);
+    });
+  }
+
+  wrapImageInFigure(img) {
+    const figure = document.createElement('figure');
+    figure.style.textAlign = 'center';
+
+    const caption = document.createElement('figcaption');
+    caption.textContent = `Image ${this.figureCount}: ${img.alt}`;
+
+    const copyButton = document.createElement('button');
+    copyButton.className = 'img-copy-button';
+    copyButton.textContent = 'Copy';
+    copyButton.addEventListener('click', () => this.copyImageToClipboard(img, copyButton));
+
+    img.parentNode.insertBefore(figure, img);
+    figure.appendChild(copyButton);
+    figure.appendChild(img);
+    figure.appendChild(caption);
+
+    const newImg = this.styleImage(img);
+    newImg.addEventListener('mousedown', (e) => this.handleImageZoom(newImg, e));
+  }
+
+  styleImage(img) {
+    const newImg = img.cloneNode(true);
+    img.replaceWith(newImg);
+    
+    newImg.style.display = 'block';
+    newImg.style.marginLeft = 'auto';
+    newImg.style.marginRight = 'auto';
+    newImg.style.border = '1px solid #ddd';
+    newImg.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+    newImg.style.borderRadius = '4px';
+    newImg.style.cursor = 'zoom-in';
+    newImg.style.transition = 'none';
+
+    return newImg;
+  }
+}
+
+// Code block handling class
+class CodeBlockHandler {
+  async processCodeBlocks() {
+    document.querySelectorAll('pre[data-role="codeBlock"]').forEach(block => {
+      if (block.querySelector('.copy-button')) return;
+      this.addCopyButton(block);
+    });
+  }
+
+  addCopyButton(block) {
+    const button = document.createElement('button');
+    button.className = 'copy-button';
+    button.textContent = 'Copy';
+    
+    button.addEventListener('click', async () => {
+      const code = block.querySelector('code').textContent;
+      await navigator.clipboard.writeText(code);
+      this.showCopyFeedback(button);
+    });
+
+    block.appendChild(button);
+  }
+
+  showCopyFeedback(button) {
+    button.textContent = 'Copied!';
+    setTimeout(() => {
+      button.textContent = 'Copy';
+    }, COPY_FEEDBACK_DELAY);
+  }
+}
+
+// Main initialization
+document.addEventListener("DOMContentLoaded", async function () {
+  const imageHandler = new ImageHandler();
+  const codeBlockHandler = new CodeBlockHandler();
+
+  // Initial processing
+  await imageHandler.processImages();
+  await codeBlockHandler.processCodeBlocks();
+
+  // Setup observer
+  const observer = new MutationObserver(async (mutations) => {
+    for (const mutation of mutations) {
+      if (mutation.type === 'childList') {
+        const hasNewImages = Array.from(mutation.addedNodes).some(node => 
+          node.nodeName === 'IMG' || (node.nodeType === 1 && node.querySelector('img'))
+        );
+        const hasNewCodeBlocks = Array.from(mutation.addedNodes).some(node =>
+          node.nodeName === 'PRE' || (node.nodeType === 1 && node.querySelector('pre[data-role="codeBlock"]'))
+        );
+        
+        if (hasNewImages) await imageHandler.processImages();
+        if (hasNewCodeBlocks) await codeBlockHandler.processCodeBlocks();
       }
-    });
-
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true
-    });
+    }
   });
+
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+});
 </script>
 
 <style>
   figure {
     margin: 1em 0;
+    position: relative;
   }
 
   figcaption {
@@ -176,45 +197,13 @@
     font-style: italic;
     margin-top: 0.5em;
     color: #8c53cf;
-    font-style: italic;
   }
 
-  /* Add new styles for copy button */
   pre[data-role="codeBlock"] {
     position: relative;
   }
 
-  .copy-button {
-    position: absolute;
-    bottom: 8px;
-    right: 5px;
-    padding: 4px 8px;
-    font-size: 12px;
-    background: rgba(255, 255, 255, 0.8);
-    border: 1px solid #ddd;
-    border-radius: 3px;
-    cursor: pointer;
-    opacity: 0;
-    transition: opacity 0.2s ease-in-out;
-    z-index: 1000;
-  }
-
-  /* Show buttons on hover */
-  pre[data-role="codeBlock"]:hover .copy-button,
-  figure:hover .img-copy-button {
-    opacity: 0.7;
-  }
-
-  .copy-button:hover,
-  .img-copy-button:hover {
-    opacity: 1 !important;
-  }
-
-  /* Add styles for image copy button */
-  figure {
-    position: relative;
-  }
-
+  .copy-button,
   .img-copy-button {
     position: absolute;
     bottom: 5px;
@@ -230,11 +219,12 @@
     z-index: 1000;
   }
 
-  /* Show buttons on hover */
+  pre[data-role="codeBlock"]:hover .copy-button,
   figure:hover .img-copy-button {
     opacity: 0.7;
   }
 
+  .copy-button:hover,
   .img-copy-button:hover {
     opacity: 1 !important;
   }
