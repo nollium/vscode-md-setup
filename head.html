@@ -21,6 +21,21 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+// Add this new function
+function clearOCRCache() {
+  const keys = Object.keys(localStorage);
+  let clearedCount = 0;
+  
+  keys.forEach(key => {
+    if (key.startsWith(OCR_CACHE_PREFIX)) {
+      localStorage.removeItem(key);
+      clearedCount++;
+    }
+  });
+  
+  alert(`Cleared ${clearedCount} OCR cache entries`);
+}
+
 // Image handling class
 class ImageHandler {
   constructor() {
@@ -99,9 +114,28 @@ class ImageHandler {
   }
 
   async getImageHash(img) {
-    // Simple hash based on src and dimensions
-    const key = `${img.src}_${img.naturalWidth}x${img.naturalHeight}`;
-    return btoa(key).replace(/[/+=]/g, '_');
+    // Create a canvas to draw the image
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    
+    // Draw image to canvas
+    ctx.drawImage(img, 0, 0);
+    
+    // Get image data (RGBA values for each pixel)
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    
+    // Simple but fast hashing function
+    let hash = 0;
+    for (let i = 0; i < imageData.length; i++) {
+      const byte = imageData[i];
+      hash = ((hash << 5) - hash) + byte;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    
+    // Convert to base64-safe string
+    return btoa(hash.toString()).replace(/[/+=]/g, '_');
   }
 
   async processImageOCR(img, ocrButton) {
@@ -240,6 +274,23 @@ class CodeBlockHandler {
 
 // Main initialization
 document.addEventListener("DOMContentLoaded", async function () {
+  // Add this new code block
+  await sleep(DELAY);
+  const clearButton = document.createElement('button');
+  clearButton.textContent = 'Clear OCR Cache';
+  clearButton.style.display = 'inline-block';
+  clearButton.style.marginLeft = '15px';
+  clearButton.style.verticalAlign = 'middle';
+  clearButton.addEventListener('click', clearOCRCache);
+  
+  // Find the first h1 element and append the button to it
+  const firstH1 = document.querySelector('h1');
+  if (firstH1) {
+    firstH1.style.display = 'flex';
+    firstH1.style.alignItems = 'center';
+    firstH1.appendChild(clearButton);
+  }
+
   const imageHandler = new ImageHandler();
   const codeBlockHandler = new CodeBlockHandler();
 
@@ -333,5 +384,20 @@ document.addEventListener("DOMContentLoaded", async function () {
   .img-copy-button:disabled {
     opacity: 0.7;
     cursor: not-allowed;
+  }
+
+  /* Add these new styles */
+  button[onclick="clearOCRCache()"] {
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+
+  button[onclick="clearOCRCache()"]:hover {
+    background: rgba(255, 255, 255, 1);
   }
 </style>
