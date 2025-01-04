@@ -1,8 +1,20 @@
 <!-- The content below will be included at the end of the <head> element. -->
+<!-- Add Tesseract.js and its worker -->
+<script src="https://unpkg.com/tesseract.js@v4.1.1/dist/tesseract.min.js"></script>
+<script>
+  // Initialize tesseract worker
+  window.Tesseract = Tesseract.create({
+    workerPath: 'https://unpkg.com/tesseract.js@v4.1.1/dist/worker.min.js',
+    langPath: 'https://tessdata.projectnaptha.com/4.0.0',
+    corePath: 'https://unpkg.com/tesseract.js-core@v4.0.4/tesseract-core.wasm.js',
+  });
+</script>
+
 <script type="text/javascript">
 // Constants
 const DELAY = 200;
 const COPY_FEEDBACK_DELAY = 2000;
+const OCR_CACHE_PREFIX = 'ocr_cache_';
 
 // Utility functions
 function sleep(ms) {
@@ -14,6 +26,7 @@ class ImageHandler {
   constructor() {
     this.figureCount = 0;
     this.isZoomed = false;
+    this.processingOCR = new Set(); // Track images being processed
   }
 
   async copyImageToClipboard(img, copyButton) {
@@ -66,9 +79,10 @@ class ImageHandler {
   }
 
   showCopyFeedback(button, isError = false) {
+    const originalText = button.textContent;
     button.textContent = isError ? 'Error!' : 'Copied!';
     setTimeout(() => {
-      button.textContent = 'Copy';
+      button.textContent = originalText;
     }, COPY_FEEDBACK_DELAY);
   }
 
@@ -84,6 +98,58 @@ class ImageHandler {
     });
   }
 
+  async getImageHash(img) {
+    // Simple hash based on src and dimensions
+    const key = `${img.src}_${img.naturalWidth}x${img.naturalHeight}`;
+    return btoa(key).replace(/[/+=]/g, '_');
+  }
+
+  async processImageOCR(img, ocrButton) {
+    const hash = await this.getImageHash(img);
+    const cacheKey = OCR_CACHE_PREFIX + hash;
+    
+    // Check cache first
+    const cachedText = localStorage.getItem(cacheKey);
+    if (cachedText) {
+      ocrButton.textContent = 'OCR';
+      ocrButton.disabled = false;
+      return cachedText;
+    }
+
+    // Mark as processing
+    this.processingOCR.add(hash);
+    ocrButton.disabled = true;
+    ocrButton.textContent = '0%';
+
+    try {
+      const { data: { text } } = await Tesseract.recognize(
+        img.src,
+        'eng',
+        {
+          logger: m => {
+            if (m.status === 'recognizing text') {
+              ocrButton.textContent = `${Math.round(m.progress * 100)}%`;
+            }
+          }
+        }
+      );
+
+      // Cache the result
+      localStorage.setItem(cacheKey, text);
+      
+      ocrButton.textContent = 'OCR';
+      ocrButton.disabled = false;
+      return text;
+    } catch (error) {
+      console.error('OCR failed:', error);
+      ocrButton.textContent = 'OCR Error';
+      document.write(error);
+      return null;
+    } finally {
+      this.processingOCR.delete(hash);
+    }
+  }
+
   wrapImageInFigure(img) {
     const figure = document.createElement('figure');
     figure.style.textAlign = 'center';
@@ -91,18 +157,37 @@ class ImageHandler {
     const caption = document.createElement('figcaption');
     caption.textContent = `Image ${this.figureCount}: ${img.alt}`;
 
+    const buttonContainer = document.createElement('div');
+    buttonContainer.className = 'button-container';
+
     const copyButton = document.createElement('button');
     copyButton.className = 'img-copy-button';
     copyButton.textContent = 'Copy';
     copyButton.addEventListener('click', () => this.copyImageToClipboard(img, copyButton));
 
+    const ocrButton = document.createElement('button');
+    ocrButton.className = 'img-copy-button';
+    ocrButton.textContent = 'OCR';
+    ocrButton.addEventListener('click', async () => {
+      const text = await this.processImageOCR(img, ocrButton);
+      if (text) {
+        await navigator.clipboard.writeText(text);
+        this.showCopyFeedback(ocrButton);
+      }
+    });
+
     img.parentNode.insertBefore(figure, img);
-    figure.appendChild(copyButton);
+    buttonContainer.appendChild(copyButton);
+    buttonContainer.appendChild(ocrButton);
+    figure.appendChild(buttonContainer);
     figure.appendChild(img);
     figure.appendChild(caption);
 
     const newImg = this.styleImage(img);
     newImg.addEventListener('mousedown', (e) => this.handleImageZoom(newImg, e));
+
+    // Start OCR processing in background
+    this.processImageOCR(newImg, ocrButton);
   }
 
   styleImage(img) {
@@ -219,13 +304,34 @@ document.addEventListener("DOMContentLoaded", async function () {
     z-index: 1000;
   }
 
-  pre[data-role="codeBlock"]:hover .copy-button,
-  figure:hover .img-copy-button {
+  /* Add styles for button container */
+  .button-container {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    display: flex;
+    gap: 5px;
+    z-index: 1000;
+  }
+
+  /* Update button styles to remove absolute positioning */
+  .button-container .img-copy-button {
+    position: static;
+    opacity: 0;
+  }
+
+  /* Show buttons on hover */
+  figure:hover .button-container .img-copy-button {
     opacity: 0.7;
   }
 
   .copy-button:hover,
   .img-copy-button:hover {
     opacity: 1 !important;
+  }
+
+  .img-copy-button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
   }
 </style>
