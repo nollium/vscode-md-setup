@@ -191,11 +191,20 @@
     border: 1px solid #ddd;
     border-radius: 3px;
     cursor: pointer;
+    opacity: 0;  /* Hide by default */
+    transition: opacity 0.2s ease-in-out;
+    z-index: 1000;
+  }
+
+  /* Show buttons on hover */
+  pre[data-role="codeBlock"]:hover .copy-button,
+  figure:hover .img-copy-button {
     opacity: 0.7;
   }
 
-  .copy-button:hover {
-    opacity: 1;
+  .copy-button:hover,
+  .img-copy-button:hover {
+    opacity: 1 !important;
   }
 
   /* Add styles for image copy button */
@@ -213,11 +222,17 @@
     border: 1px solid #ddd;
     border-radius: 3px;
     cursor: pointer;
-    opacity: 0.7;
+    opacity: 0;  /* Hide by default */
+    transition: opacity 0.2s ease-in-out;
     z-index: 1000;
   }
 
+  /* Show buttons on hover */
+  figure:hover .img-copy-button {
+    opacity: 0.7;
+  }
+
   .img-copy-button:hover {
-    opacity: 1;
+    opacity: 1 !important;
   }
 </style>
