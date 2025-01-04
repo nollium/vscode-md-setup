@@ -65,20 +65,53 @@
       });
     }
 
+    // Add new function to handle code blocks
+    async function processCodeBlocks() {
+      document.querySelectorAll('pre[data-role="codeBlock"]').forEach(block => {
+        // Skip if already processed
+        if (block.querySelector('.copy-button')) return;
+
+        const button = document.createElement('button');
+        button.className = 'copy-button';
+        button.textContent = 'Copy';
+        
+        button.addEventListener('click', async () => {
+          const code = block.querySelector('code').textContent;
+          await navigator.clipboard.writeText(code);
+          
+          // Visual feedback
+          button.textContent = 'Copied!';
+          setTimeout(() => {
+            button.textContent = 'Copy';
+          }, 2000);
+        });
+
+        block.appendChild(button);
+      });
+    }
+
     // Initial processing
     await sleep(DELAY);
     await processImages();
+    await processCodeBlocks();
 
-    // Watch for DOM changes
+    // Update mutation observer
     const observer = new MutationObserver(async (mutations) => {
       for (const mutation of mutations) {
         if (mutation.type === 'childList') {
           const hasNewImages = Array.from(mutation.addedNodes).some(node => 
             node.nodeName === 'IMG' || (node.nodeType === 1 && node.querySelector('img'))
           );
+          const hasNewCodeBlocks = Array.from(mutation.addedNodes).some(node =>
+            node.nodeName === 'PRE' || (node.nodeType === 1 && node.querySelector('pre[data-role="codeBlock"]'))
+          );
+          
           if (hasNewImages) {
             figureCount = 0;
             await processImages();
+          }
+          if (hasNewCodeBlocks) {
+            await processCodeBlocks();
           }
         }
       }
@@ -102,5 +135,27 @@
     margin-top: 0.5em;
     color: #8c53cf;
     font-style: italic;
+  }
+
+  /* Add new styles for copy button */
+  pre[data-role="codeBlock"] {
+    position: relative;
+  }
+
+  .copy-button {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    padding: 4px 8px;
+    font-size: 12px;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    cursor: pointer;
+    opacity: 0.7;
+  }
+
+  .copy-button:hover {
+    opacity: 1;
   }
 </style>
