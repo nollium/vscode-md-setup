@@ -23,7 +23,46 @@
         caption.textContent = `Image ${figureCount}: ${img.alt}`;
         const figure = document.createElement('figure');
         figure.style.textAlign = 'center';
+
+        // Add copy button
+        const copyButton = document.createElement('button');
+        copyButton.className = 'img-copy-button';
+        copyButton.textContent = 'Copy';
+        copyButton.addEventListener('click', async () => {
+          try {
+            // Create a canvas and draw the image on it
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            
+            // Get the image as blob
+            const blob = await new Promise(resolve => canvas.toBlob(resolve));
+            
+            // Copy to clipboard
+            await navigator.clipboard.write([
+              new ClipboardItem({
+                [blob.type]: blob
+              })
+            ]);
+            
+            // Visual feedback
+            copyButton.textContent = 'Copied!';
+            setTimeout(() => {
+              copyButton.textContent = 'Copy';
+            }, 2000);
+          } catch (err) {
+            console.error('Failed to copy image:', err);
+            copyButton.textContent = 'Error!';
+            setTimeout(() => {
+              copyButton.textContent = 'Copy';
+            }, 2000);
+          }
+        });
+
         img.parentNode.insertBefore(figure, img);
+        figure.appendChild(copyButton);
         figure.appendChild(img);
         figure.appendChild(caption);
         
@@ -156,6 +195,29 @@
   }
 
   .copy-button:hover {
+    opacity: 1;
+  }
+
+  /* Add styles for image copy button */
+  figure {
+    position: relative;
+  }
+
+  .img-copy-button {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    padding: 4px 8px;
+    font-size: 12px;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    cursor: pointer;
+    opacity: 0.7;
+    z-index: 1000;
+  }
+
+  .img-copy-button:hover {
     opacity: 1;
   }
 </style>
