@@ -304,11 +304,44 @@ class ImageHandler {
 
 // Code block handling class
 class CodeBlockHandler {
-  async processCodeBlocks() {
-    document.querySelectorAll('pre[data-role="codeBlock"]').forEach(block => {
-      if (block.querySelector('.copy-button')) return;
-      this.addCopyButton(block);
+  constructor() {
+    this.isWrapped = true; // Default state
+    // Add keyboard listener
+    document.addEventListener('keydown', (e) => {
+      if (e.key.toLowerCase() === 'w' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        this.toggleWrap();
+      }
     });
+  }
+
+  // Add this new method to handle toggling
+  toggleWrap() {
+    this.isWrapped = !this.isWrapped;
+    const toggle = document.getElementById('code-wrap-toggle');
+    if (toggle) {
+      toggle.textContent = this.isWrapped ? 'Disable Wrap' : 'Enable Wrap';
+    }
+    
+    document.querySelectorAll('pre[data-role="codeBlock"]').forEach(block => {
+      block.classList.toggle('wrap-text', this.isWrapped);
+    });
+  }
+
+  addWrapToggle() {
+    const toggle = document.createElement('button');
+    toggle.id = 'code-wrap-toggle';
+    toggle.textContent = this.isWrapped ? 'Disable Wrap' : 'Enable Wrap';
+    toggle.className = 'wrap-toggle-button';
+    
+    toggle.addEventListener('click', () => this.toggleWrap());
+
+    // Find the first h1 element and append the button to it
+    const firstH1 = document.querySelector('h1');
+    if (firstH1) {
+      firstH1.style.display = 'flex';
+      firstH1.style.alignItems = 'center';
+      firstH1.appendChild(toggle);
+    }
   }
 
   addCopyButton(block) {
@@ -347,6 +380,19 @@ class CodeBlockHandler {
     setTimeout(() => {
       button.textContent = 'Copy';
     }, COPY_FEEDBACK_DELAY);
+  }
+
+  async processCodeBlocks() {
+    // Add wrap toggle button if it doesn't exist
+    if (!document.getElementById('code-wrap-toggle')) {
+      this.addWrapToggle();
+    }
+
+    document.querySelectorAll('pre[data-role="codeBlock"]').forEach(block => {
+      if (block.querySelector('.copy-button')) return;
+      this.addCopyButton(block);
+      block.classList.toggle('wrap-text', this.isWrapped);
+    });
   }
 }
 
@@ -418,6 +464,19 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   pre[data-role="codeBlock"] {
     position: relative;
+    overflow-x: auto;  /* Default horizontal scroll */
+  }
+
+  pre[data-role="codeBlock"].wrap-text {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    overflow-x: hidden;  /* Hide horizontal scroll when wrapped */
+  }
+
+  pre[data-role="codeBlock"].wrap-text code {
+    white-space: pre-wrap;
+    word-break: break-word;
   }
 
   .copy-button {
@@ -568,5 +627,29 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   .ocr-modal-copy:hover {
     background: #e0e0e0;
+  }
+
+  /* Style for the wrap toggle button */
+  .wrap-toggle-button {
+    margin-left: 15px;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 14px;
+    white-space: nowrap;
+    opacity: 0;  /* Start hidden like copy button */
+    transition: opacity 0.2s ease-in-out;
+  }
+
+  /* Show button on hover of the h1 */
+  h1:hover .wrap-toggle-button {
+    opacity: 0.7;
+  }
+
+  .wrap-toggle-button:hover {
+    background: rgba(255, 255, 255, 1);
+    opacity: 1 !important;
   }
 </style>
