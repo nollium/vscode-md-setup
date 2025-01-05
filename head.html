@@ -314,34 +314,11 @@ class CodeBlockHandler {
     });
   }
 
-  // Add this new method to handle toggling
   toggleWrap() {
     this.isWrapped = !this.isWrapped;
-    const toggle = document.getElementById('code-wrap-toggle');
-    if (toggle) {
-      toggle.textContent = this.isWrapped ? 'Disable Wrap' : 'Enable Wrap';
-    }
-    
     document.querySelectorAll('pre[data-role="codeBlock"]').forEach(block => {
       block.classList.toggle('wrap-text', this.isWrapped);
     });
-  }
-
-  addWrapToggle() {
-    const toggle = document.createElement('button');
-    toggle.id = 'code-wrap-toggle';
-    toggle.textContent = this.isWrapped ? 'Disable Wrap' : 'Enable Wrap';
-    toggle.className = 'wrap-toggle-button';
-    
-    toggle.addEventListener('click', () => this.toggleWrap());
-
-    // Find the first h1 element and append the button to it
-    const firstH1 = document.querySelector('h1');
-    if (firstH1) {
-      firstH1.style.display = 'flex';
-      firstH1.style.alignItems = 'center';
-      firstH1.appendChild(toggle);
-    }
   }
 
   addCopyButton(block) {
@@ -383,11 +360,6 @@ class CodeBlockHandler {
   }
 
   async processCodeBlocks() {
-    // Add wrap toggle button if it doesn't exist
-    if (!document.getElementById('code-wrap-toggle')) {
-      this.addWrapToggle();
-    }
-
     document.querySelectorAll('pre[data-role="codeBlock"]').forEach(block => {
       if (block.querySelector('.copy-button')) return;
       this.addCopyButton(block);
