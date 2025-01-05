@@ -1,13 +1,11 @@
 <!-- The content below will be included at the end of the <head> element. -->
 <!-- Add Tesseract.js and its worker -->
+<!-- The content below will be included at the end of the <head> element. -->
+<!-- Add Tesseract.js and its worker -->
 <script src="https://unpkg.com/tesseract.js@v4.1.1/dist/tesseract.min.js"></script>
 <script>
-  // Initialize tesseract worker
-  window.Tesseract = Tesseract.create({
-    workerPath: 'https://unpkg.com/tesseract.js@v4.1.1/dist/worker.min.js',
-    langPath: 'https://tessdata.projectnaptha.com/4.0.0',
-    corePath: 'https://unpkg.com/tesseract.js-core@v4.0.4/tesseract-core.wasm.js',
-  });
+  // Initialize tesseract worker - Updated for v4+ API
+  window.Tesseract = Tesseract; // Remove .create() call
 </script>
 
 <script type="text/javascript">
@@ -250,10 +248,14 @@ class ImageHandler {
     const buttonContainer = document.createElement('div');
     buttonContainer.className = 'button-container';
 
-    const copyButton = document.createElement('button');
-    copyButton.className = 'img-copy-button';
-    copyButton.textContent = 'Copy';
-    copyButton.addEventListener('click', () => this.copyImageToClipboard(img, copyButton));
+    // Only create copy button if the Clipboard API is available
+    if (navigator.clipboard && navigator.clipboard.write) {
+      const copyButton = document.createElement('button');
+      copyButton.className = 'img-copy-button';
+      copyButton.textContent = 'Copy';
+      copyButton.addEventListener('click', () => this.copyImageToClipboard(img, copyButton));
+      buttonContainer.appendChild(copyButton);
+    }
 
     const ocrButton = document.createElement('button');
     ocrButton.className = 'img-copy-button';
@@ -266,7 +268,6 @@ class ImageHandler {
     });
 
     img.parentNode.insertBefore(figure, img);
-    buttonContainer.appendChild(copyButton);
     buttonContainer.appendChild(ocrButton);
     figure.appendChild(buttonContainer);
     figure.appendChild(img);
@@ -311,16 +312,33 @@ class CodeBlockHandler {
     button.textContent = 'Copy';
     
     button.addEventListener('click', async () => {
-      const code = block.querySelector('code').textContent;
-      await navigator.clipboard.writeText(code);
-      this.showCopyFeedback(button);
+      try {
+        const code = block.querySelector('code').textContent;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(code);
+        } else {
+          // Fallback for browsers that don't support clipboard API
+          const textarea = document.createElement('textarea');
+          textarea.value = code;
+          textarea.style.position = 'fixed';
+          textarea.style.opacity = '0';
+          document.body.appendChild(textarea);
+          textarea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textarea);
+        }
+        this.showCopyFeedback(button);
+      } catch (err) {
+        console.error('Failed to copy:', err);
+        this.showCopyFeedback(button, true);
+      }
     });
 
     block.appendChild(button);
   }
 
-  showCopyFeedback(button) {
-    button.textContent = 'Copied!';
+  showCopyFeedback(button, isError = false) {
+    button.textContent = isError ? 'Error!' : 'Copied!';
     setTimeout(() => {
       button.textContent = 'Copy';
     }, COPY_FEEDBACK_DELAY);
@@ -330,9 +348,10 @@ class CodeBlockHandler {
 
 // Main initialization
 document.addEventListener("DOMContentLoaded", async function () {
+  let clearButton;
   if (CLEAR_CACHE_BUTTON_ENABLED) {
     await sleep(DELAY);
-    const clearButton = document.createElement('button');
+    clearButton = document.createElement('button');
     clearButton.textContent = 'Clear OCR Cache';
     clearButton.style.display = 'inline-block';
     clearButton.style.marginLeft = '15px';
@@ -342,7 +361,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   
   // Find the first h1 element and append the button to it
   const firstH1 = document.querySelector('h1');
-  if (firstH1) {
+  if (firstH1 && clearButton) {  // Check if clearButton exists
     firstH1.style.display = 'flex';
     firstH1.style.alignItems = 'center';
     firstH1.appendChild(clearButton);
@@ -396,8 +415,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     position: relative;
   }
 
-  .copy-button,
-  .img-copy-button {
+  .copy-button {
     position: absolute;
     bottom: 5px;
     right: 5px;
@@ -410,6 +428,15 @@ document.addEventListener("DOMContentLoaded", async function () {
     opacity: 0;
     transition: opacity 0.2s ease-in-out;
     z-index: 1000;
+  }
+
+  /* Show copy button on hover of the code block */
+  pre[data-role="codeBlock"]:hover .copy-button {
+    opacity: 0.7;
+  }
+
+  .copy-button:hover {
+    opacity: 1 !important;
   }
 
   /* Add styles for button container */
@@ -536,32 +563,5 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   .ocr-modal-copy:hover {
     background: #e0e0e0;
-  }
-
-  pre[data-role="codeBlock"] {
-    position: relative;
-  }
-
-  .copy-button {
-    position: absolute;
-    bottom: 5px;
-    right: 5px;
-    padding: 4px 8px;
-    font-size: 12px;
-    background: rgba(255, 255, 255, 0.8);
-    border: 1px solid #ddd;
-    border-radius: 3px;
-    cursor: pointer;
-    opacity: 0;
-    transition: opacity 0.2s ease-in-out;
-    z-index: 1000;
-  }
-
-  pre[data-role="codeBlock"]:hover .copy-button {
-    opacity: 0.7;
-  }
-
-  .copy-button:hover {
-    opacity: 1 !important;
   }
 </style>
